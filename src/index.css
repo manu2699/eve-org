@@ -1,0 +1,23 @@
+@font-face {
+	font-family: "TypeWriter";
+	src: url("./assets/TravelingTypewriter.ttf") format("truetype");
+}
+
+body {
+	margin: 0;
+	font-family: "TypeWriter";
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+h1 {
+	color: skyblue;
+}
+
+th {
+	font-weight: bold;
+	color: red;
+}
+td {
+	font-weight: 600;
+}
