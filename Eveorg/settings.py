@@ -62,10 +62,13 @@ ASGI_APPLICATION = 'Eveorg.routing.application'
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            # "hosts": [("localhost", 6379), os.environ.get('REDIS_URL')],
+            "hosts": [os.environ.get('REDIS_URL')],
+        },
+    },
 }
-
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
