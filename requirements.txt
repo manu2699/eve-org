@@ -3,3 +3,5 @@ djangorestframework==3.11.0
 PyJWT==1.7.1
 whitenoise==5.1.0
 gunicorn==20.0.4
+Twisted==20.3.0
+channels==2.4.0

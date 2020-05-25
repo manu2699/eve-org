@@ -6,17 +6,20 @@ import json
 import datetime
 import jwt
 import uuid
-# from simplecrypto import encrypt, decrypt
 from django.contrib.auth.hashers import make_password, check_password
 from django.http import HttpResponse, JsonResponse
 from django.core import serializers
 from django.db import connection
+from django.conf import settings
 
 from . models import Colleges, Events
 from . serializers import EventSerializer
 
-# Create your views here.
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+channel_layer = get_channel_layer()
 
+# Create your views here.
 
 def dateObjectConv(o):
     if isinstance(o, (datetime.date, datetime.datetime)):
@@ -31,50 +34,27 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
-
 @api_view(['GET'])
 def getColleges(request):
     clgs = Colleges.objects.all()
     data = serializers.serialize('json', clgs)
     return HttpResponse(data, content_type="application/json")
 
-
-@api_view(['POST'])
-def postEvent2(request):
-    print(request.data)
-    cRef = Colleges.objects.get(
-        pk=request.data["cid"], clgName=request.data["cName"])
-    event = Events(Cref=cRef)
-    Tosend = {}
-    Tosend["EventName"] = request.data["eName"]
-    Tosend["EventDate"] = request.data["eDate"]
-    serializer = EventSerializer(event, data=Tosend)
-    if(serializer.is_valid()):
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.errors)
-
-
 @api_view(['POST'])
 def postEvent(request):
-    with connection.cursor() as cursor:
-        cursor.execute(
-            "Insert into Events (EventName, EventDate, Cref_id) values (\"%s\", \"%s\", \"%s\")" % (request.data["eName"], request.data["eDate"], request.data["cid"]))
-        # ls = dictfetchall(cursor)
-        data = serializers.serialize('json', cursor)
-        return HttpResponse(data, content_type="application/json")
-        # return HttpResponse(json.dumps(ls, default=dateObjectConv), content_type="application/json")
-
-
-@api_view(['GET'])
-def getEvents2(request):
-
-    query = Events.objects.raw(
-        'Select Events.EventName, Events.EventDate, Events.id, Colleges.clgName, Colleges.clgAdd from Events, Colleges where Colleges.id = Events.Cref_id')
-
-    data = serializers.serialize('json', query)
-    return HttpResponse(data, content_type="application/json")
-
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "Insert into Events (EventName, EventDate, Cref_id) values (\"%s\", \"%s\", \"%s\")" % (request.data["eName"], request.data["eDate"], request.data["cid"]))
+            data = {}
+            data['message'] = "Event Added.."
+            async_to_sync(channel_layer.group_send)("chat",  {"type": "chat.message", "text": "Posted an event"})
+            return Response(data, content_type="application/json")
+    except Exception as e:
+        print(e.__class__)
+        data = {}
+        data['message'] = "Some Error Has Occured"
+        return Response(data, status="404", content_type="application/json")
 
 @api_view(['GET'])
 def getEvents(request):
@@ -82,8 +62,8 @@ def getEvents(request):
         cursor.execute(
             "Select Events.EventName, Events.EventDate, Events.id, Colleges.clgName, Colleges.clgAdd from Events, Colleges where Colleges.id = Events.Cref_id")
         ls = dictfetchall(cursor)
+        async_to_sync(channel_layer.group_send)("chat",  {"type": "chat.message", "text": "Got Events from Sockets...."})
         return HttpResponse(json.dumps(ls, default=dateObjectConv), content_type="application/json")
-
 
 @api_view(['POST'])
 def collegeLogin(request):
@@ -108,7 +88,6 @@ def collegeLogin(request):
             jwt_token['token'] = jwt.encode(
                 payload, "BCD086C6724307FCCA9CEE9C58A279CF")
             return Response({'token':  jwt_token['token']}, status="200")
-            # return HttpResponse(json.dumps(jwt_token), status=200, content_type="application/json")
         else:
             return HttpResponse(json.dumps({'Error': "Invalid credentials"}), status=400, content_type="application/json")
 
@@ -120,13 +99,11 @@ def collegeRegister(request):
 
     email = request.data['email']
     rawPass = request.data['password']
-    # password = encrypt(rawPass, "SecretKey")
     password = make_password(rawPass)
     try:
         clg = Colleges.objects.get(email=email)
         print(clg)
     except Colleges.DoesNotExist:
-
         uniqueId = uuid.uuid4()
         uniqueId = str(uniqueId)
         Colleges.objects.create(email=email, password=password, id=uniqueId)

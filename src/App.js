@@ -3,8 +3,16 @@ import axios from 'axios';
 
 const App = () => {
   const [events, SetEvents] = useState([])
+  // const [url, setUrl] = useState("");
 
   useEffect(() => {
+    let ws = new WebSocket('ws://127.0.0.1:8000/ws/chat/')
+    ws.onopen = () => {
+      console.log('connected')
+    }
+    ws.onmessage = evt => {
+      console.log(evt)
+    }
     axios.get('/api/getEvents/').then(res => {
       console.log(res.data)
       SetEvents(res.data)
