@@ -6,7 +6,8 @@ const App = () => {
   // const [url, setUrl] = useState("");
 
   useEffect(() => {
-    let ws = new WebSocket('ws://127.0.0.1:8000/ws/chat/')
+    // let ws = new WebSocket('ws://127.0.0.1:8000/ws/chat/')
+    let ws = new WebSocket('ws://eve-org.herokuapp.com/ws/chat/')
     ws.onopen = () => {
       console.log('connected')
     }
