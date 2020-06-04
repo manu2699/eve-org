@@ -1,5 +1,18 @@
 from django.db import models
 
+class CAuth(models.Model):
+    class Meta:
+        db_table = "CAuth"
+        
+    univ = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    city = models.CharField(max_length=100)
+    id = models.CharField(primary_key=True, max_length=30)
+
+    def __str__(self):
+        return self.name
+
 
 class Colleges(models.Model):
 
